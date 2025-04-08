@@ -20,10 +20,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     send_msg(s, login)
     send_msg(s, senha)
 
-    status = recv_msg(s)
-    print(status)
+    resposta = recv_msg(s)
+    print(resposta)
 
-    if "sucesso" not in status and "Criando novo" not in status:
+    if "sucesso" not in resposta:
+        s.close()
         exit()
 
     while True:
@@ -34,11 +35,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         send_msg(s, comando)
 
         if comando == "SAIR":
-            print("Saindo.")
             break
 
         elif comando == "UPLOAD":
-            nome = input("Nome do arquivo: ")
+            nome = input("Nome do arquivo: ").strip()
             if not os.path.exists(nome):
                 print("Arquivo não encontrado.")
                 continue
@@ -46,40 +46,32 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             send_msg(s, nome)
             resposta = recv_msg(s)
             print(resposta)
-            if resposta != "OK":
-                continue
 
             with open(nome, 'rb') as f:
                 data = f.read()
 
-            send_msg(s, str(len(data)))  # envia o tamanho como string
-            ack = recv_msg(s)  # espera confirmação
-            if ack != "READY":
-                print("Erro no protocolo.")
-                continue
-
-            s.sendall(data)  # envia o conteúdo
-
-            print(recv_msg(s))  # confirmação do servidor
+            send_msg(s, str(len(data)))
+            ack = recv_msg(s)
+            if ack == "READY":
+                s.sendall(data)
+                print(recv_msg(s))
+            else:
+                print("Erro ao iniciar upload")
 
         elif comando == "DOWNLOAD":
-            nome = input("Nome do arquivo: ")
+            nome = input("Nome do arquivo: ").strip()
             send_msg(s, nome)
-
-            status = recv_msg(s)
-            if status != "OK":
-                print("Arquivo não encontrado no servidor.")
+            resposta = recv_msg(s)
+            if resposta != "OK":
+                print(resposta)
                 continue
 
             tamanho = int(recv_msg(s))
-            s.send(b"READY")  # confirmação para o servidor
+            send_msg(s, "READY")
 
             data = b""
             while len(data) < tamanho:
-                packet = s.recv(4096)
-                if not packet:
-                    break
-                data += packet
+                data += s.recv(1024)
 
             with open(nome, 'wb') as f:
                 f.write(data)

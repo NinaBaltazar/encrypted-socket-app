@@ -1,1 +1,1 @@
-teste 2 . 
+teste. Login bem-sucedido. Envie comando (UPLOAD, DOWNLOAD, LIST ou SAIR):
