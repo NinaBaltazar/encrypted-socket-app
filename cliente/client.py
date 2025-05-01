@@ -39,11 +39,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
         elif comando == "UPLOAD":
             nome = input("Nome do arquivo: ").strip()
+
             if not os.path.exists(nome):
                 print("Arquivo não encontrado.")
                 continue
 
-            send_msg(s, nome)
+            nome_base = os.path.basename(nome)
+            send_msg(s, nome_base)
             resposta = recv_msg(s)
             print(resposta)
 
