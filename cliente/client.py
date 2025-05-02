@@ -2,86 +2,102 @@ import socket
 import getpass
 import os
 
-HOST = '127.0.0.1'
-PORT = 9090
 
-def send_msg(sock, msg):
-    sock.send(msg.encode())
+class ClientApp:
+    def __init__(self, host='127.0.0.1', port=9090):
+        self.host = host
+        self.port = port
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-def recv_msg(sock):
-    return sock.recv(1024).decode()
+    def send_msg(self, msg):
+        self.sock.send(msg.encode())
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
+    def recv_msg(self):
+        return self.sock.recv(1024).decode()
 
-    login = input("Login: ")
-    senha = getpass.getpass("Senha: ")
+    def upload(self):
+        nome = input("Nome do arquivo: ").strip()
 
-    send_msg(s, login)
-    send_msg(s, senha)
+        if not os.path.exists(nome):
+            print("Arquivo não encontrado.")
+            return
 
-    resposta = recv_msg(s)
-    print(resposta)
+        nome_base = os.path.basename(nome)
+        self.send_msg(nome_base)
+        resposta = self.recv_msg()
+        print(resposta)
 
-    if "sucesso" not in resposta:
-        s.close()
-        exit()
+        with open(nome, 'rb') as f:
+            data = f.read()
 
-    while True:
-        prompt = recv_msg(s)
-        print(prompt)
-
-        comando = input("Digite o comando (UPLOAD, DOWNLOAD, LIST ou SAIR): ").strip().upper()
-        send_msg(s, comando)
-
-        if comando == "SAIR":
-            break
-
-        elif comando == "UPLOAD":
-            nome = input("Nome do arquivo: ").strip()
-
-            if not os.path.exists(nome):
-                print("Arquivo não encontrado.")
-                continue
-
-            nome_base = os.path.basename(nome)
-            send_msg(s, nome_base)
-            resposta = recv_msg(s)
-            print(resposta)
-
-            with open(nome, 'rb') as f:
-                data = f.read()
-
-            send_msg(s, str(len(data)))
-            ack = recv_msg(s)
-            if ack == "READY":
-                s.sendall(data)
-                print(recv_msg(s))
-            else:
-                print("Erro ao iniciar upload")
-
-        elif comando == "DOWNLOAD":
-            nome = input("Nome do arquivo: ").strip()
-            send_msg(s, nome)
-            resposta = recv_msg(s)
-            if resposta != "OK":
-                print(resposta)
-                continue
-
-            tamanho = int(recv_msg(s))
-            send_msg(s, "READY")
-
-            data = b""
-            while len(data) < tamanho:
-                data += s.recv(1024)
-
-            with open(nome, 'wb') as f:
-                f.write(data)
-
-            print("Arquivo recebido com sucesso.")
-
-        elif comando == "LIST":
-            print(recv_msg(s))
-
+        self.send_msg(str(len(data)))
+        ack = self.recv_msg()
+        if ack == "READY":
+            self.sock.sendall(data)
+            print(self.recv_msg())
         else:
-            print("Comando inválido.")
+            print("Erro ao iniciar upload")
+
+    def download(self):
+        nome = input("Nome do arquivo: ").strip()
+        self.send_msg(nome)
+        resposta = self.recv_msg()
+        if resposta != "OK":
+            print(resposta)
+            return
+
+        tamanho = int(self.recv_msg())
+        self.send_msg("READY")
+
+        data = b""
+        while len(data) < tamanho:
+            data += self.sock.recv(1024)
+
+        with open(nome, 'wb') as f:
+            f.write(data)
+
+        print("Arquivo recebido com sucesso.")
+
+    def list_files(self):
+        print(self.recv_msg())
+
+    def run(self):
+        self.sock.connect((self.host, self.port))
+
+        login = input("Login: ")
+        senha = getpass.getpass("Senha: ")
+
+        self.send_msg(login)
+        self.send_msg(senha)
+
+        resposta = self.recv_msg()
+        print(resposta)
+
+        if "sucesso" not in resposta:
+            self.sock.close()
+            exit()
+
+        while True:
+            prompt = self.recv_msg()
+            print(prompt)
+
+            comando = input("Digite o comando (UPLOAD, DOWNLOAD, LIST ou SAIR): ").strip().upper()
+            self.send_msg(comando)
+
+            if comando == "SAIR":
+                break
+            elif comando == "UPLOAD":
+                self.upload()
+            elif comando == "DOWNLOAD":
+                self.download()
+            elif comando == "LIST":
+                self.list_files()
+            else:
+                print("Comando inválido.")
+
+        self.sock.close()
+
+
+if __name__ == "__main__":
+    app = ClientApp()
+    app.run()
