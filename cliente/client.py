@@ -24,6 +24,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     print(resposta)
 
     if "sucesso" not in resposta:
+        input("Pressione Enter para sair...")
         s.close()
         exit()
 

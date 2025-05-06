@@ -1,6 +1,7 @@
 import json
 import os
 import hashlib
+import time
 
 USER_FILE = "servidor/users.json"
 
@@ -27,6 +28,7 @@ def login_user(conn):
             conn.send(b"Autenticado com sucesso!")
         else:
             conn.send(b"Senha incorreta.")
+            time.sleep(0.1)
             conn.close()
     else:
         users[login] = senha_hash
