@@ -1,31 +1,61 @@
-# encrypted-socket-app
-Servidor e cliente para envio seguro de arquivos utilizando criptografia simétrica (AES, DES e Blowfish), troca de chaves segura (EC e DH), autenticação de usuário com hash de senha e comunicação via socket TCP. Projeto acadêmico para a disciplina de Criptografia.
+# Encrypted Socket App
 
-# 🔐 Servidor de Arquivos Criptografados
+## Visão Geral
+Este projeto é uma aplicação baseada em sockets criptografados, projetada para comunicação segura entre um servidor e clientes. Ele utiliza criptografia para garantir que os dados e mensagens dos usuários sejam transmitidos com segurança.
 
-Projeto acadêmico para a disciplina de Criptografia (A1) — implementação de um sistema cliente-servidor para envio e recebimento de arquivos com segurança, usando criptografia simétrica, troca de chaves segura e autenticação de usuário.
+## Funcionalidades
+- Autenticação segura de usuários usando senhas com hash.
+- Comunicação criptografada entre servidor e clientes.
+- Gerenciamento de usuários com credenciais pré-definidas.
 
----
+## Pré-requisitos
+- Node.js instalado no sistema.
+- Python instalado no sistema.
+- Um gerenciador de pacotes como npm ou yarn.
 
-## 📌 Funcionalidades
+## Instalação
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/NinaBaltazar/encrypted-socket-app.git
+   ```
+2. Navegue até o diretório do projeto:
+   ```bash
+   cd encrypted-socket-app
+   ```
+3. Instale as dependências do Node.js:
+   ```bash
+   npm install
+   ```
+4. Instale as bibliotecas Python listadas no `requirements.txt`:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- Comunicação via **socket TCP**
-- **Criptografia simétrica**:
-  - AES
-  - DES
-  - Blowfish
-- **Troca de chaves segura**:
-  - EC (Curvas Elípticas - PKI)
-  - DH (Diffie-Hellman)
-- **Autenticação de usuário**:
-  - Armazenamento de senhas com hash (MD5, SHA-256)
-- **Operações com arquivos**:
-  - Enviar arquivo
-  - Baixar arquivo
-  - Listar arquivos
-  - Identificação do emissor
+## Uso
+1. Inicie o servidor:
+   ```bash
+   node servidor/server.js
+   ```
+2. Conecte um cliente ao servidor:
+   ```bash
+   node cliente/client.js
+   ```
 
----
+### Baixar Arquivos
+- Para baixar um arquivo de outro usuário, digite o nome do usuário seguido do nome do arquivo desejado. 
+- O arquivo será salvo automaticamente na pasta `cliente/downloads`.
 
-## 🧱 Estrutura do Projeto
+### Fazer Upload de Arquivos
+- Para realizar o upload de um arquivo, crie um arquivo `.txt` na pasta `cliente/`.
+- Ao realizar o upload, informe o caminho completo do arquivo, por exemplo: `cliente/nomedoarquivo.txt`.
+
+## Configuração
+- As credenciais dos usuários estão armazenadas no arquivo `servidor/users.json`. Você pode adicionar ou modificar usuários editando este arquivo. As senhas devem ser armazenadas como hashes seguros (por exemplo, SHA-256).
+
+## Notas de Segurança
+- Certifique-se de que o servidor esteja sendo executado em um ambiente seguro.
+- Use senhas fortes para as contas de usuário.
+
+
+
 
