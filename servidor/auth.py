@@ -1,6 +1,7 @@
 import json
 import os
 import hashlib
+from file_handler import ensure_user_dir
 
 USER_FILE = "servidor/users.json"
 
@@ -31,6 +32,8 @@ def login_user(conn):
     else:
         users[login] = senha_hash
         save_users(users)
+        ensure_user_dir(login)  # CRIA PASTA DO USUARIO NOVO AQUI
         conn.send(b"Usuario nao encontrado. Criando novo...\nAutenticado com sucesso!")
 
     return login
+

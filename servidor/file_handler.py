@@ -1,4 +1,5 @@
 import os
+from crypto_utils import encrypt, decrypt
 
 UPLOAD_DIR = "servidor/uploads"
 
@@ -12,8 +13,8 @@ def handle_upload(conn, user):
     conn.send(b"OK")
 
     try:
-        size = int(conn.recv(1024).decode())  # recebe o tamanho
-        conn.send(b"READY")  # envia confirmação para cliente
+        size = int(conn.recv(1024).decode())
+        conn.send(b"READY")
 
         data = b""
         while len(data) < size:
@@ -22,11 +23,13 @@ def handle_upload(conn, user):
                 break
             data += packet
 
+        encrypted_data = encrypt(data)
+
         user_dir = ensure_user_dir(user)
         path = os.path.join(user_dir, nome)
 
         with open(path, 'wb') as f:
-            f.write(data)
+            f.write(encrypted_data)
 
         conn.send(b"Arquivo salvo com sucesso.")
     except Exception as e:
@@ -44,14 +47,16 @@ def handle_download(conn, user):
     conn.send(b"OK")
 
     with open(path, 'rb') as f:
-        data = f.read()
+        encrypted_data = f.read()
 
-    conn.send(str(len(data)).encode())
+    decrypted_data = decrypt(encrypted_data)
+
+    conn.send(str(len(decrypted_data)).encode())
     ack = conn.recv(1024).decode()
     if ack != "READY":
         return
 
-    conn.sendall(data)
+    conn.sendall(decrypted_data)
 
 def handle_list(conn, user):
     user_dir = ensure_user_dir(user)

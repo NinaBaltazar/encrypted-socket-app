@@ -1,10 +1,16 @@
 from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
-import base64
-from crypto_utils import encrypt, decrypt, pad, unpad
-from crypto_utils import CryptoUtils
+import os
 
-KEY = get_random_bytes(16)
+KEY_FILE = "servidor/key.bin"
+
+def load_key():
+    if not os.path.exists(KEY_FILE):
+        with open(KEY_FILE, 'wb') as f:
+            f.write(os.urandom(16))
+    with open(KEY_FILE, 'rb') as f:
+        return f.read()
+
+KEY = load_key()
 
 def pad(data):
     pad_len = 16 - len(data) % 16

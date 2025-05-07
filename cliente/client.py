@@ -3,7 +3,7 @@ import getpass
 import os
 
 HOST = '127.0.0.1'
-PORT = 9090
+PORT = 9091
 
 def send_msg(sock, msg):
     sock.send(msg.encode())
@@ -43,7 +43,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 print("Arquivo não encontrado.")
                 continue
 
-            send_msg(s, nome)
+            send_msg(s, os.path.basename(nome))
             resposta = recv_msg(s)
             print(resposta)
 
@@ -56,11 +56,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.sendall(data)
                 print(recv_msg(s))
             else:
-                print("Erro ao iniciar upload")
+                print("Erro ao iniciar upload.")
 
         elif comando == "DOWNLOAD":
             nome = input("Nome do arquivo: ").strip()
-            send_msg(s, nome)
+            send_msg(s, os.path.basename(nome))
             resposta = recv_msg(s)
             if resposta != "OK":
                 print(resposta)
@@ -73,10 +73,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             while len(data) < tamanho:
                 data += s.recv(1024)
 
-            with open(nome, 'wb') as f:
+            user_download_dir = os.path.join("downloads", login)
+            os.makedirs(user_download_dir, exist_ok=True)
+            file_path = os.path.join(user_download_dir, nome)
+
+            with open(file_path, 'wb') as f:
                 f.write(data)
 
-            print("Arquivo recebido com sucesso.")
+            print(f"Arquivo recebido e salvo em {file_path}")
 
         elif comando == "LIST":
             print(recv_msg(s))
