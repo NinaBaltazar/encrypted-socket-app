@@ -1,62 +1,80 @@
+import time 
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from crypto_utils import decrypt_aes, encrypt_aes
 
 UPLOAD_DIR = "servidor/uploads"
+
+def send_encrypted(conn, key, msg):
+    conn.send(encrypt_aes(key, msg.encode()))
+
+def recv_encrypted(conn, key):
+    return decrypt_aes(key, conn.recv(4096)).decode()
 
 def ensure_user_dir(user):
     user_path = os.path.join(UPLOAD_DIR, user)
     os.makedirs(user_path, exist_ok=True)
     return user_path
 
-def handle_upload(conn, user):
-    nome = conn.recv(1024).decode()
-    conn.send(b"OK")
+def handle_upload(conn, user, key):
+    remetente = user
+    nome = recv_encrypted(conn, key)
+    send_encrypted(conn, key, "OK")
 
-    try:
-        size = int(conn.recv(1024).decode())  # recebe o tamanho
-        conn.send(b"READY")  # envia confirmação para cliente
+    size = int(recv_encrypted(conn, key))
+    send_encrypted(conn, key, "READY")
 
-        data = b""
-        while len(data) < size:
-            packet = conn.recv(4096)
-            if not packet:
-                break
-            data += packet
+    data = b""
+    while len(data) < size:
+        data += conn.recv(4096)
 
-        user_dir = ensure_user_dir(user)
-        path = os.path.join(user_dir, nome)
+    plaintext = decrypt_aes(key, data)
+    print("Conteúdo recebido (descriptografado):", plaintext.decode(errors="replace"))
 
-        with open(path, 'wb') as f:
-            f.write(data)
+    path = os.path.join(ensure_user_dir(remetente), nome)
+    with open(path, 'wb') as f:
+        f.write(plaintext)
 
-        conn.send(b"Arquivo salvo com sucesso.")
-    except Exception as e:
-        conn.send(f"Erro ao salvar arquivo: {e}".encode())
+    send_encrypted(conn, key, "\nArquivo salvo com sucesso.")
+    time.sleep(0.05)
+    send_encrypted(conn, key, "\nFIM OPERACAO")
 
-def handle_download(conn, user):
-    nome = conn.recv(1024).decode()
-    user_dir = ensure_user_dir(user)
-    path = os.path.join(user_dir, nome)
+def handle_download(conn, key):
+    remetente = recv_encrypted(conn, key)
+    nome = recv_encrypted(conn, key)
+    path = os.path.join(ensure_user_dir(remetente), nome)
 
     if not os.path.exists(path):
-        conn.send(b"NOT_FOUND")
+        send_encrypted(conn, key, "\nNOT_FOUND")
+        time.sleep(0.05)
+        send_encrypted(conn, key, "\nFIM OPERACAO")
         return
 
-    conn.send(b"OK")
+    send_encrypted(conn, key, "OK")
 
     with open(path, 'rb') as f:
-        data = f.read()
+        plaintext = f.read()
 
-    conn.send(str(len(data)).encode())
-    ack = conn.recv(1024).decode()
-    if ack != "READY":
-        return
+    encrypted = encrypt_aes(key, plaintext)
+    print("Conteúdo a ser enviado (criptografado):", encrypted[:64])
+    
+    send_encrypted(conn, key, str(len(encrypted)))
+    ack = recv_encrypted(conn, key)
+    if ack == "READY":
+        conn.sendall(encrypted)
 
-    conn.sendall(data)
+    time.sleep(0.05)
+    send_encrypted(conn, key, "\nFIM OPERACAO")
 
-def handle_list(conn, user):
-    user_dir = ensure_user_dir(user)
-    arquivos = os.listdir(user_dir)
-    if not arquivos:
-        conn.send(b"Nenhum arquivo encontrado.")
-    else:
-        conn.send("\n".join(arquivos).encode())
+def handle_list(conn, key):
+    users = os.listdir(UPLOAD_DIR)
+    response = ""
+    for user in users:
+        arquivos = os.listdir(os.path.join(UPLOAD_DIR, user))
+        response += f"{user}: {', '.join(arquivos)}\n"
+
+    send_encrypted(conn, key, response if response else "\nNenhum arquivo disponível.")
+    time.sleep(0.05)
+    send_encrypted(conn, key, "\nFIM OPERACAO")
